@@ -1,0 +1,6 @@
+name = "chess-quest"
+pages_build_output_dir = "dist"
+
+[[kv_namespaces]]
+binding = "CHESS_PROGRESS"
+id = "20683ae83b9440f19e066bbf4d4124d3"

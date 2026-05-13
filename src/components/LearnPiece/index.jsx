@@ -7,23 +7,12 @@ export default function LearnPiece({ progress, onBack, markChallengeComplete, ma
   const [selected, setSelected] = useState(null)
   const [challengeIdx, setChallengeIdx] = useState(null)
 
-  const handleSelectPiece = (piece) => {
-    setSelected(piece)
-    setChallengeIdx(null)
-  }
-
-  const handleStartChallenge = (idx) => {
-    setChallengeIdx(idx)
-  }
-
   const handleChallengeComplete = () => {
     markChallengeComplete(selected.id, challengeIdx)
     addStars(1)
     const completed = progress.piecesLearned[selected.id]?.completedChallenges || []
     const allDone = selected.challenges.every((_, i) => completed.includes(i) || i === challengeIdx)
-    if (allDone) {
-      markPieceMastered(selected.id)
-    }
+    if (allDone) markPieceMastered(selected.id)
     setChallengeIdx(null)
   }
 
@@ -45,7 +34,7 @@ export default function LearnPiece({ progress, onBack, markChallengeComplete, ma
       <PieceCard
         piece={selected}
         onBack={() => setSelected(null)}
-        onStartChallenge={handleStartChallenge}
+        onStartChallenge={(idx) => setChallengeIdx(idx)}
         completed={progress.piecesLearned[selected.id]?.completedChallenges || []}
         isMastered={progress.badges.includes(`piece-${selected.id}`)}
       />
@@ -53,32 +42,32 @@ export default function LearnPiece({ progress, onBack, markChallengeComplete, ma
   }
 
   return (
-    <div className="min-h-screen px-4 py-6">
-      <div className="max-w-lg mx-auto">
-        <button onClick={onBack} className="text-white/70 hover:text-white mb-4 flex items-center gap-1 text-sm">
+    <div className="min-h-screen px-6 py-8">
+      <div className="max-w-[680px] mx-auto">
+        <button onClick={onBack} className="text-white/70 hover:text-white mb-6 flex items-center gap-2 text-base">
           ← Back
         </button>
-        <h1 className="text-3xl font-black text-white text-center mb-2">Learn a Piece</h1>
-        <p className="text-white/70 text-center mb-6 text-sm">Pick a chess piece to learn about!</p>
+        <h1 className="text-4xl font-black text-white text-center mb-2">Learn a Piece</h1>
+        <p className="text-white/60 text-center mb-8 text-base">Pick a chess piece to learn about!</p>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
           {PIECES.map(piece => {
             const completedCount = progress.piecesLearned[piece.id]?.completedChallenges?.length || 0
             const isMastered = progress.badges.includes(`piece-${piece.id}`)
             return (
               <button
                 key={piece.id}
-                onClick={() => handleSelectPiece(piece)}
-                className={`bg-gradient-to-br ${piece.bg} rounded-2xl p-4 text-white shadow-lg hover:scale-105 active:scale-95 transition-transform relative overflow-hidden`}
+                onClick={() => setSelected(piece)}
+                className={`bg-gradient-to-br ${piece.bg} rounded-3xl p-5 md:p-6 text-white shadow-lg hover:scale-105 active:scale-95 transition-transform relative overflow-hidden`}
               >
                 {isMastered && (
-                  <div className="absolute top-2 right-2 text-lg">⭐</div>
+                  <div className="absolute top-3 right-3 text-2xl">⭐</div>
                 )}
-                <div className="text-5xl mb-2">{piece.emoji}</div>
-                <div className="font-black text-lg">{piece.name}</div>
-                <div className="text-white/80 text-xs mt-1">{piece.title}</div>
+                <div className="text-6xl mb-3">{piece.emoji}</div>
+                <div className="font-black text-xl">{piece.name}</div>
+                <div className="text-white/80 text-sm mt-1">{piece.title}</div>
                 {completedCount > 0 && (
-                  <div className="mt-2 text-xs bg-white/20 rounded-full px-2 py-0.5">
+                  <div className="mt-3 text-sm bg-white/20 rounded-full px-3 py-1">
                     {completedCount}/{piece.challenges.length} done
                   </div>
                 )}
