@@ -21,6 +21,7 @@ export default function App() {
     markQuestComplete,
     markCheckmateSolved,
     markCheckmate2Solved,
+    logGame,
     getPieceChallengesCompleted,
     resetProgress,
     savePin,
@@ -59,10 +60,10 @@ export default function App() {
         <PiecesGuide onBack={() => nav('home')} />
       )}
       {screen === 'play' && (
-        <PlayWithBuddy onBack={() => nav('home')} />
+        <PlayWithBuddy onBack={() => nav('home')} logGame={logGame} />
       )}
       {screen === 'pass' && (
-        <PassAndPlay onBack={() => nav('home')} />
+        <PassAndPlay onBack={() => nav('home')} logGame={logGame} />
       )}
       {screen === 'checkmate' && (
         <CheckmatePuzzles

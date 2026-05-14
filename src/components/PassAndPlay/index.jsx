@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import GameScreen from './GameScreen'
 
-export default function PassAndPlay({ onBack }) {
+export default function PassAndPlay({ onBack, logGame }) {
   const [started, setStarted] = useState(false)
 
   if (started) {
-    return <GameScreen onBack={() => setStarted(false)} />
+    return <GameScreen onBack={() => setStarted(false)} logGame={logGame} />
   }
 
   return (

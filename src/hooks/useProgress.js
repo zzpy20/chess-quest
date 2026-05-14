@@ -14,6 +14,7 @@ const defaultProgress = {
   streak: 0,
   lastActiveDate: null,
   totalMinutes: 0,
+  gameLog: [],
 }
 
 function mergeProgress(local, cloud) {
@@ -40,6 +41,13 @@ function mergeProgress(local, cloud) {
     checkmate2Solved: [...new Set([...(local.checkmate2Solved || []), ...(cloud.checkmate2Solved || [])])],
     piecesLearned: mergePiecesLearned(local.piecesLearned || {}, cloud.piecesLearned || {}),
     totalMinutes: Math.max(local.totalMinutes || 0, cloud.totalMinutes || 0),
+    gameLog: (() => {
+      const combined = [...(local.gameLog || []), ...(cloud.gameLog || [])]
+      const seen = new Set()
+      return combined
+        .filter(g => { if (seen.has(g.ts)) return false; seen.add(g.ts); return true })
+        .sort((a, b) => a.ts - b.ts)
+    })(),
   }
 }
 
@@ -173,6 +181,19 @@ export function useProgress() {
     })
   }
 
+  const logGame = (mode, level, result) => {
+    setProgress(p => ({
+      ...p,
+      gameLog: [...(p.gameLog || []), {
+        ts: Date.now(),
+        date: new Date().toDateString(),
+        mode,   // 'ai' | 'pass'
+        level,  // AI level id | null
+        result, // 'win'|'loss'|'draw' for AI; 'white'|'black'|'draw' for pass
+      }],
+    }))
+  }
+
   const getPieceChallengesCompleted = (pieceId) =>
     progress.piecesLearned[pieceId]?.completedChallenges || []
 
@@ -233,6 +254,7 @@ export function useProgress() {
     markQuestComplete,
     markCheckmateSolved,
     markCheckmate2Solved,
+    logGame,
     getPieceChallengesCompleted,
     isQuestDone,
     resetProgress,

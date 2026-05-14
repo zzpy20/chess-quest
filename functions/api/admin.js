@@ -32,6 +32,8 @@ async function setLabel(env, pin, label) {
 }
 
 function summarize(pin, p, label) {
+  const aiGames = (p.gameLog || []).filter(g => g.mode === 'ai')
+  const aiWins = aiGames.filter(g => g.result === 'win').length
   return {
     pin,
     label: label || null,
@@ -43,6 +45,8 @@ function summarize(pin, p, label) {
     questsDone: (p.questsCompleted || []).length,
     mate1Done: (p.checkmateSolved || []).length,
     mate2Done: (p.checkmate2Solved || []).length,
+    gamesPlayed: (p.gameLog || []).length,
+    aiWinRate: aiGames.length ? Math.round((aiWins / aiGames.length) * 100) : null,
   }
 }
 

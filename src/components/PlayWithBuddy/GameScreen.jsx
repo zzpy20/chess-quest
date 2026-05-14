@@ -11,30 +11,48 @@ const STATUS_CONFIG = {
   draw: { bg: 'from-yellow-400/20 to-orange-400/20', border: 'border-yellow-400', icon: '🤝', title: "It's a draw!", msg: "Both sides played well — a fair game!" },
 }
 
-export default function GameScreen({ level, side, onBack }) {
+const PIECE_SYM  = { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' }
+const PIECE_NAME = { p: 'Pawn', n: 'Knight', b: 'Bishop', r: 'Rook', q: 'Queen', k: 'King' }
+
+export default function GameScreen({ level, side, onBack, logGame }) {
   const boardSize = useBoardSize(24)
   const { position, status, message, isThinking, lastMove, moveCount, onPieceDrop, resetGame } = useGameState(level, side)
 
   const [hintMove, setHintMove] = useState(null)
-  const [hintCount, setHintCount] = useState(0)
   const hintTimer = useRef(null)
 
-  useEffect(() => () => clearTimeout(hintTimer.current), [])
+  const [replayArrow, setReplayArrow] = useState(null)
+  const replayTimer = useRef(null)
+
+  const hasLoggedRef = useRef(false)
+
+  useEffect(() => {
+    if (status === 'playing') { hasLoggedRef.current = false; return }
+    if (hasLoggedRef.current) return
+    hasLoggedRef.current = true
+    logGame('ai', level, status === 'won' ? 'win' : status === 'lost' ? 'loss' : 'draw')
+  }, [status, level, logGame])
+
+  useEffect(() => () => { clearTimeout(hintTimer.current); clearTimeout(replayTimer.current) }, [])
 
   const showHint = useCallback(() => {
     if (isThinking || status !== 'playing') return
     const move = getAIMove(position, 'knight')
     if (!move) return
     setHintMove({ from: move.from, to: move.to })
-    setHintCount(c => c + 1)
     clearTimeout(hintTimer.current)
     hintTimer.current = setTimeout(() => setHintMove(null), 3000)
   }, [isThinking, status, position])
 
-  // Clear hint when the board changes (player made their move)
-  useEffect(() => {
-    setHintMove(null)
-  }, [position])
+  const showReplay = useCallback(() => {
+    if (!lastMove) return
+    setReplayArrow(lastMove)
+    clearTimeout(replayTimer.current)
+    replayTimer.current = setTimeout(() => setReplayArrow(null), 3000)
+  }, [lastMove])
+
+  // Clear hint when position changes (move was made)
+  useEffect(() => { setHintMove(null) }, [position])
 
   const squareStyles = {}
   if (lastMove) {
@@ -45,6 +63,10 @@ export default function GameScreen({ level, side, onBack }) {
     squareStyles[hintMove.from] = { backgroundColor: 'rgba(100, 149, 237, 0.55)' }
     squareStyles[hintMove.to]   = { backgroundColor: 'rgba(100, 149, 237, 0.75)', boxShadow: 'inset 0 0 0 3px rgba(100,149,237,0.9)' }
   }
+
+  const arrows = replayArrow
+    ? [{ startSquare: replayArrow.from, endSquare: replayArrow.to, color: 'rgba(168, 85, 247, 0.85)' }]
+    : []
 
   const endConfig = STATUS_CONFIG[status]
 
@@ -64,13 +86,22 @@ export default function GameScreen({ level, side, onBack }) {
           </div>
         </div>
 
-        {/* Message + hint row */}
-        <div className="flex items-center gap-2 mb-4">
+        {/* Message + buttons row */}
+        <div className="flex items-center gap-2 mb-3">
           <div className={`flex-1 rounded-3xl px-5 py-3 text-center font-bold text-base transition-all ${
             isThinking ? 'bg-blue-500/20 text-blue-200' : 'bg-white/10 text-white'
           }`}>
             {message}
           </div>
+          {lastMove && moveCount > 0 && (
+            <button
+              onClick={showReplay}
+              title="Replay last move"
+              className="flex-shrink-0 bg-purple-400/20 hover:bg-purple-400/35 border border-purple-400/40 text-purple-200 rounded-2xl px-4 py-3 font-bold text-base transition-all active:scale-95"
+            >
+              ↩
+            </button>
+          )}
           {status === 'playing' && !isThinking && (
             <button
               onClick={showHint}
@@ -82,7 +113,14 @@ export default function GameScreen({ level, side, onBack }) {
           )}
         </div>
 
-        {hintMove && (
+        {/* Info banners */}
+        {replayArrow && (
+          <div className="bg-purple-500/15 border border-purple-400/30 rounded-2xl px-4 py-2 mb-3 text-purple-200 text-sm text-center">
+            ↩ {PIECE_SYM[replayArrow.piece] || '?'} {replayArrow.from} → {replayArrow.to}
+            {replayArrow.captured && ` · captured ${PIECE_SYM[replayArrow.captured]} ${PIECE_NAME[replayArrow.captured]}`}
+          </div>
+        )}
+        {!replayArrow && hintMove && (
           <div className="bg-blue-500/15 border border-blue-400/30 rounded-2xl px-4 py-2 mb-3 text-blue-200 text-sm text-center">
             💡 Try moving the highlighted piece to the blue square!
           </div>
@@ -95,6 +133,7 @@ export default function GameScreen({ level, side, onBack }) {
               position,
               onPieceDrop,
               squareStyles,
+              arrows,
               allowDragging: status === 'playing' && !isThinking,
               canDragPiece: ({ piece }) => piece.pieceType?.startsWith(side),
               boardOrientation: side === 'w' ? 'white' : 'black',
@@ -106,7 +145,7 @@ export default function GameScreen({ level, side, onBack }) {
           />
         </div>
 
-        {/* Game over overlay */}
+        {/* Game over */}
         {status !== 'playing' && endConfig && (
           <div className={`mt-5 bg-gradient-to-br ${endConfig.bg} border-2 ${endConfig.border} rounded-3xl p-8 text-center animate-pop`}>
             <div className="text-6xl mb-3">{endConfig.icon}</div>

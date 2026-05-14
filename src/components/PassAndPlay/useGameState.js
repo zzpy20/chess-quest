@@ -29,7 +29,7 @@ export function useGameState() {
     if (!move) return false
 
     setPosition(chess.fen())
-    setLastMove({ from: sourceSquare, to: targetSquare })
+    setLastMove({ from: sourceSquare, to: targetSquare, piece: move.piece, captured: move.captured || null })
     setMoveCount(c => c + 1)
     move.captured ? playCapture() : playMove()
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 
 const PIECE_IDS = ['pawn', 'rook', 'bishop', 'knight', 'queen', 'king']
+const AI_LEVELS = ['dragon', 'puppy', 'knight', 'lion', 'wizard']
+const LEVEL_LABELS = { dragon: '🐉 Dragon', puppy: '🐶 Puppy', knight: '🏇 Knight', lion: '🦁 Lion', wizard: '🧙 Wizard' }
 
 const fmtTime = (mins) => {
   if (!mins) return '—'
@@ -65,6 +67,109 @@ function Login({ onAuth }) {
         >
           {busy ? 'Checking…' : 'Enter'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Game stats ────────────────────────────────────────────────────────────────
+
+function GameStats({ gameLog }) {
+  if (!gameLog.length) return (
+    <div className="bg-white/5 rounded-3xl p-5 mb-5 text-white/30 text-sm text-center">
+      No games logged yet — play a game with Buddy or 2-player to start tracking!
+    </div>
+  )
+
+  const aiGames = gameLog.filter(g => g.mode === 'ai')
+  const passGames = gameLog.filter(g => g.mode === 'pass')
+  const recent = [...gameLog].reverse().slice(0, 10)
+
+  // Per-level breakdown
+  const byLevel = AI_LEVELS.map(id => {
+    const games = aiGames.filter(g => g.level === id)
+    const wins = games.filter(g => g.result === 'win').length
+    const losses = games.filter(g => g.result === 'loss').length
+    const draws = games.filter(g => g.result === 'draw').length
+    const total = games.length
+    const pct = total ? Math.round((wins / total) * 100) : null
+    return { id, wins, losses, draws, total, pct }
+  }).filter(r => r.total > 0)
+
+  const totalAiWins = aiGames.filter(g => g.result === 'win').length
+  const overallWinRate = aiGames.length ? Math.round((totalAiWins / aiGames.length) * 100) : null
+
+  const resultStyle = (r) => {
+    if (r === 'win' || r === 'white') return 'text-green-300 font-bold'
+    if (r === 'loss' || r === 'black') return 'text-red-300 font-bold'
+    return 'text-yellow-300 font-bold'
+  }
+  const resultLabel = (g) => {
+    if (g.mode === 'ai') return g.result === 'win' ? 'Win' : g.result === 'loss' ? 'Loss' : 'Draw'
+    return g.result === 'white' ? 'White won' : g.result === 'black' ? 'Black won' : 'Draw'
+  }
+
+  return (
+    <div className="bg-white/10 rounded-3xl p-5 mb-5">
+      <h2 className="text-white font-black text-sm mb-4 uppercase tracking-wider">Game History</h2>
+
+      {/* Overall summary */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="bg-white/5 rounded-2xl p-3 text-center">
+          <div className="text-2xl font-black text-white">{aiGames.length}</div>
+          <div className="text-white/50 text-xs mt-0.5">vs AI</div>
+        </div>
+        <div className="bg-white/5 rounded-2xl p-3 text-center">
+          <div className="text-2xl font-black text-green-300">
+            {overallWinRate !== null ? `${overallWinRate}%` : '—'}
+          </div>
+          <div className="text-white/50 text-xs mt-0.5">Win rate</div>
+        </div>
+        <div className="bg-white/5 rounded-2xl p-3 text-center">
+          <div className="text-2xl font-black text-purple-300">{passGames.length}</div>
+          <div className="text-white/50 text-xs mt-0.5">2-player</div>
+        </div>
+      </div>
+
+      {/* Per-level breakdown */}
+      {byLevel.length > 0 && (
+        <div className="mb-5">
+          <div className="grid grid-cols-[1fr_40px_40px_40px_40px_50px] text-white/40 text-xs font-bold mb-2 px-1 uppercase tracking-wider">
+            <span>Level</span><span className="text-center">Played</span>
+            <span className="text-center text-green-400">W</span>
+            <span className="text-center text-red-400">L</span>
+            <span className="text-center text-yellow-400">D</span>
+            <span className="text-center">Win%</span>
+          </div>
+          {byLevel.map(r => (
+            <div key={r.id} className="grid grid-cols-[1fr_40px_40px_40px_40px_50px] items-center py-2 border-t border-white/5 px-1">
+              <span className="text-white/80 text-sm">{LEVEL_LABELS[r.id]}</span>
+              <span className="text-white/60 text-sm text-center">{r.total}</span>
+              <span className="text-green-300 text-sm text-center font-bold">{r.wins}</span>
+              <span className="text-red-300 text-sm text-center font-bold">{r.losses}</span>
+              <span className="text-yellow-300 text-sm text-center font-bold">{r.draws}</span>
+              <span className={`text-sm text-center font-black ${r.pct >= 50 ? 'text-green-300' : 'text-red-300'}`}>
+                {r.pct !== null ? `${r.pct}%` : '—'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Recent 10 games */}
+      <div>
+        <div className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2 px-1">Recent Games</div>
+        {recent.map((g, i) => (
+          <div key={g.ts || i} className="flex items-center justify-between py-2 border-t border-white/5 px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-white/40 text-xs w-24">{g.date}</span>
+              <span className="text-white/70 text-sm">
+                {g.mode === 'ai' ? (LEVEL_LABELS[g.level] || g.level) : '👥 2-Player'}
+              </span>
+            </div>
+            <span className={`text-sm ${resultStyle(g.result)}`}>{resultLabel(g)}</span>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -326,6 +431,9 @@ function AccountDetail({ pin, password, onBack, onDeleted }) {
           )}
         </div>
 
+        {/* Game history */}
+        <GameStats gameLog={p.gameLog || []} />
+
         {/* Raw JSON */}
         <details className="bg-white/5 rounded-2xl p-4 mb-5">
           <summary className="text-white/40 text-sm cursor-pointer hover:text-white/60">Raw progress JSON</summary>
@@ -362,7 +470,7 @@ function AccountDetail({ pin, password, onBack, onDeleted }) {
 
 // ─── Accounts table ─────────────────────────────────────────────────────────────
 
-function AccountsTable({ accounts, onSelect }) {
+function AccountsTable({ accounts, onSelect, onLogout }) {
   const sorted = [...accounts].sort((a, b) => {
     if (!a.lastActiveDate) return 1
     if (!b.lastActiveDate) return -1
@@ -376,9 +484,17 @@ function AccountsTable({ accounts, onSelect }) {
     <div className="min-h-screen px-6 py-8">
       <div className="max-w-[820px] mx-auto">
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-white">Admin Dashboard</h1>
-          <p className="text-white/50 text-sm mt-1">Chess Quest · All Accounts</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-black text-white">Admin Dashboard</h1>
+            <p className="text-white/50 text-sm mt-1">Chess Quest · All Accounts</p>
+          </div>
+          <button
+            onClick={onLogout}
+            className="text-white/40 hover:text-white/70 text-sm border border-white/20 hover:border-white/40 rounded-xl px-4 py-2 transition-colors"
+          >
+            Log out
+          </button>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
@@ -397,7 +513,7 @@ function AccountsTable({ accounts, onSelect }) {
         </div>
 
         <div className="bg-white/10 rounded-3xl overflow-hidden">
-          <div className="grid grid-cols-[140px_100px_70px_60px_70px_70px_70px_70px_80px] text-white/40 text-xs font-bold px-4 py-3 border-b border-white/10 uppercase tracking-wider">
+          <div className="grid grid-cols-[140px_100px_60px_60px_70px_70px_70px_70px_70px_70px] text-white/40 text-xs font-bold px-4 py-3 border-b border-white/10 uppercase tracking-wider">
             <span>Account</span>
             <span>Last Active</span>
             <span>Stars</span>
@@ -406,7 +522,8 @@ function AccountsTable({ accounts, onSelect }) {
             <span>Quests</span>
             <span>M-in-1</span>
             <span>M-in-2</span>
-            <span>Time</span>
+            <span>Games</span>
+            <span>Win%</span>
           </div>
           {sorted.length === 0 && (
             <div className="px-4 py-10 text-white/30 text-center text-sm">No accounts yet</div>
@@ -415,7 +532,7 @@ function AccountsTable({ accounts, onSelect }) {
             <button
               key={a.pin}
               onClick={() => onSelect(a.pin)}
-              className="w-full grid grid-cols-[140px_100px_70px_60px_70px_70px_70px_70px_80px] text-left px-4 py-3 border-b border-white/5 hover:bg-white/10 transition-colors last:border-0"
+              className="w-full grid grid-cols-[140px_100px_60px_60px_70px_70px_70px_70px_70px_70px] text-left px-4 py-3 border-b border-white/5 hover:bg-white/10 transition-colors last:border-0"
             >
               <span className="flex flex-col">
                 <span className="text-white font-black tracking-widest">{a.pin}</span>
@@ -428,7 +545,10 @@ function AccountsTable({ accounts, onSelect }) {
               <span className="text-orange-200 font-bold self-center">{a.questsDone}</span>
               <span className="text-green-300 font-bold self-center">{a.mate1Done}/10</span>
               <span className="text-emerald-300 font-bold self-center">{a.mate2Done}/10</span>
-              <span className="text-blue-300 font-bold self-center">{fmtTime(a.totalMinutes)}</span>
+              <span className="text-white/70 font-bold self-center">{a.gamesPlayed || 0}</span>
+              <span className={`font-bold self-center ${a.aiWinRate >= 50 ? 'text-green-300' : a.aiWinRate !== null ? 'text-red-300' : 'text-white/30'}`}>
+                {a.aiWinRate !== null ? `${a.aiWinRate}%` : '—'}
+              </span>
             </button>
           ))}
         </div>
@@ -439,12 +559,27 @@ function AccountsTable({ accounts, onSelect }) {
 
 // ─── Admin root ──────────────────────────────────────────────────────────────────
 
+const ADMIN_PW_KEY = 'chess-admin-pw'
+
 export default function Admin() {
   const [password, setPassword] = useState(null)
-  const [accounts, setAccounts] = useState([])
+  const [accounts, setAccounts] = useState(null) // null = not yet loaded
   const [selectedPin, setSelectedPin] = useState(null)
+  const [autoLogging, setAutoLogging] = useState(!!sessionStorage.getItem(ADMIN_PW_KEY))
+
+  // Auto-login from sessionStorage on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem(ADMIN_PW_KEY)
+    if (!saved) return
+    fetch('/api/admin?action=accounts', { headers: { Authorization: `Bearer ${saved}` } })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => { setPassword(saved); setAccounts(data.accounts || []) })
+      .catch(() => sessionStorage.removeItem(ADMIN_PW_KEY))
+      .finally(() => setAutoLogging(false))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAuth = (pw, initialAccounts) => {
+    sessionStorage.setItem(ADMIN_PW_KEY, pw)
     setPassword(pw)
     setAccounts(initialAccounts)
   }
@@ -462,6 +597,18 @@ export default function Admin() {
     refreshAccounts(password)
   }
 
+  const handleLogout = () => {
+    sessionStorage.removeItem(ADMIN_PW_KEY)
+    setPassword(null)
+    setAccounts(null)
+  }
+
+  if (autoLogging) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-white/50 text-lg">Loading…</div>
+    </div>
+  )
+
   if (!password) return <Login onAuth={handleAuth} />
 
   if (selectedPin) return (
@@ -473,5 +620,5 @@ export default function Admin() {
     />
   )
 
-  return <AccountsTable accounts={accounts} onSelect={setSelectedPin} />
+  return <AccountsTable accounts={accounts || []} onSelect={setSelectedPin} onLogout={handleLogout} />
 }

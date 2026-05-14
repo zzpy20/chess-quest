@@ -19,11 +19,11 @@ function triggerAI(chess, level, setPosition, setLastMove, setMoveCount, setIsTh
   setTimeout(() => {
     const aiMove = getAIMove(chess.fen(), level)
     if (aiMove) {
-      chess.move(aiMove)
+      const result = chess.move(aiMove)
       setPosition(chess.fen())
-      setLastMove({ from: aiMove.from, to: aiMove.to })
+      setLastMove({ from: aiMove.from, to: aiMove.to, piece: result.piece, captured: result.captured || null })
       setMoveCount(c => c + 1)
-      aiMove.captured ? playCapture() : playMove()
+      result.captured ? playCapture() : playMove()
 
       const s = resolveStatus(chess, aiColor)
       if (s !== 'playing') {
@@ -70,12 +70,12 @@ export function useGameState(level, side = 'w') {
     setTimeout(() => {
       const aiMove = getAIMove(chess.fen(), level)
       if (aiMove) {
-        chess.move(aiMove)
+        const result = chess.move(aiMove)
         setPosition(chess.fen())
-        setLastMove({ from: aiMove.from, to: aiMove.to })
+        setLastMove({ from: aiMove.from, to: aiMove.to, piece: result.piece, captured: result.captured || null })
         setMoveCount(1)
         setHistory(chess.history())
-        aiMove.captured ? playCapture() : playMove()
+        result.captured ? playCapture() : playMove()
       }
       setIsThinking(false)
       setMessage("Your turn! Drag a piece to move it.")
@@ -95,7 +95,7 @@ export function useGameState(level, side = 'w') {
     if (!move) return false
 
     setPosition(chess.fen())
-    setLastMove({ from: sourceSquare, to: targetSquare })
+    setLastMove({ from: sourceSquare, to: targetSquare, piece: move.piece, captured: move.captured || null })
     setMoveCount(c => c + 1)
     setHistory(chess.history())
     move.captured ? playCapture() : playMove()

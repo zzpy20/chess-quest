@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Chessboard, defaultPieces } from 'react-chessboard'
 import { useBoardSize } from '../../hooks/useBoardSize'
 import { useGameState } from './useGameState'
@@ -23,9 +24,37 @@ const END_CONFIG = {
   'draw':       { icon: '🤝', title: "It's a draw!", msg: 'Both players played brilliantly!' },
 }
 
-export default function GameScreen({ onBack }) {
-  const boardSize = useBoardSize(24) // px-3 container → maximise board on phone
+const PIECE_SYM  = { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' }
+const PIECE_NAME = { p: 'Pawn', n: 'Knight', b: 'Bishop', r: 'Rook', q: 'Queen', k: 'King' }
+
+export default function GameScreen({ onBack, logGame }) {
+  const boardSize = useBoardSize(24)
   const { position, status, lastMove, moveCount, currentTurn, onPieceDrop, resetGame } = useGameState()
+  const hasLoggedRef = useRef(false)
+
+  const [replayArrow, setReplayArrow] = useState(null)
+  const replayTimer = useRef(null)
+
+  useEffect(() => () => clearTimeout(replayTimer.current), [])
+
+  useEffect(() => {
+    if (status === 'playing') { hasLoggedRef.current = false; return }
+    if (hasLoggedRef.current) return
+    hasLoggedRef.current = true
+    const result = status === 'white-wins' ? 'white' : status === 'black-wins' ? 'black' : 'draw'
+    logGame('pass', null, result)
+  }, [status, logGame])
+
+  const showReplay = useCallback(() => {
+    if (!lastMove) return
+    setReplayArrow(lastMove)
+    clearTimeout(replayTimer.current)
+    replayTimer.current = setTimeout(() => setReplayArrow(null), 3000)
+  }, [lastMove])
+
+  const arrows = replayArrow
+    ? [{ startSquare: replayArrow.from, endSquare: replayArrow.to, color: 'rgba(168, 85, 247, 0.85)' }]
+    : []
 
   const squareStyles = {}
   if (lastMove) {
@@ -44,8 +73,27 @@ export default function GameScreen({ onBack }) {
           <button onClick={onBack} className="text-white/70 hover:text-white flex items-center gap-2 text-base">
             ← Back
           </button>
-          <div className="text-white/50 text-sm">Move {moveCount}</div>
+          <div className="flex items-center gap-2">
+            {lastMove && moveCount > 0 && (
+              <button
+                onClick={showReplay}
+                title="Replay last move"
+                className="bg-purple-400/20 hover:bg-purple-400/35 border border-purple-400/40 text-purple-200 rounded-xl px-3 py-1.5 text-sm font-bold transition-all active:scale-95"
+              >
+                ↩ Last move
+              </button>
+            )}
+            <div className="text-white/50 text-sm">Move {moveCount}</div>
+          </div>
         </div>
+
+        {/* Replay info banner */}
+        {replayArrow && (
+          <div className="bg-purple-500/15 border border-purple-400/30 rounded-2xl px-4 py-2 mb-4 text-purple-200 text-sm text-center">
+            ↩ {PIECE_SYM[replayArrow.piece] || '?'} {replayArrow.from} → {replayArrow.to}
+            {replayArrow.captured && ` · captured ${PIECE_SYM[replayArrow.captured]} ${PIECE_NAME[replayArrow.captured]}`}
+          </div>
+        )}
 
         {/* Turn indicator */}
         {status === 'playing' && (
@@ -58,13 +106,14 @@ export default function GameScreen({ onBack }) {
           </div>
         )}
 
-        {/* Board stays fixed; black pieces are rotated 180° to face the player on the other side */}
+        {/* Board */}
         <div className="mx-auto rounded-3xl overflow-hidden shadow-2xl" style={{ width: boardSize }}>
           <Chessboard
             options={{
               position,
               onPieceDrop,
               squareStyles,
+              arrows,
               pieces,
               allowDragging: status === 'playing',
               boardWidth: boardSize,

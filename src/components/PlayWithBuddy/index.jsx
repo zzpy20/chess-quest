@@ -54,12 +54,12 @@ const LEVELS = [
   },
 ]
 
-export default function PlayWithBuddy({ onBack }) {
+export default function PlayWithBuddy({ onBack, logGame }) {
   const [level, setLevel] = useState(null)
   const [side, setSide] = useState(null)
 
   if (level && side) {
-    return <GameScreen level={level} side={side} onBack={() => { setLevel(null); setSide(null) }} />
+    return <GameScreen level={level} side={side} onBack={() => { setLevel(null); setSide(null) }} logGame={logGame} />
   }
 
   if (level && !side) {
